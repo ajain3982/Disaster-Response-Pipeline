@@ -11,6 +11,7 @@ from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
+from collections import Counter
 import pickle
 stopwords = set(stopwords.words('english'))
 
@@ -48,9 +49,23 @@ def index():
 
     sub_series = df.iloc[:,4:].apply(pd.value_counts).iloc[1]
     sub_series = sub_series.sort_values(ascending=False)[:10]
-    top_10_labels = list(kk.index)
-    top_10_counts = list(kk.values.astype(int))
-    print(top_10_labels,top_10_counts)
+    top_10_labels = list(sub_series.index)
+    top_10_counts = list(sub_series.values.astype(int))
+    
+    words_list = []
+    for message in df['message']:
+        words = tokenize(message)
+        words_list.extend(words)
+
+    words_count = Counter(words_list)
+    top_10_words = words_count.most_common(10)
+    top_10_words_list = []
+    top_10_words_count = []
+    for word,count in top_10_words:
+        top_10_words_list.append(word)
+        top_10_words_count.append(count)
+
+    print(top_10_words_list,top_10_words_count)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -89,6 +104,25 @@ def index():
                 },
                 'xaxis': {
                     'title': "Labels"
+                }
+            }
+        },
+
+        {
+            'data': [
+                Bar(
+                    x=top_10_words_list,
+                    y=top_10_words_count
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 words with their counts',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Words"
                 }
             }
         }
