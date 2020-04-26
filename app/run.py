@@ -46,8 +46,8 @@ def index():
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
 
-    kk = df.iloc[:,4:].apply(pd.value_counts).iloc[1]
-    kk = kk.sort_values(ascending=False)[:10]
+    sub_series = df.iloc[:,4:].apply(pd.value_counts).iloc[1]
+    sub_series = sub_series.sort_values(ascending=False)[:10]
     top_10_labels = list(kk.index)
     top_10_counts = list(kk.values.astype(int))
     print(top_10_labels,top_10_counts)
