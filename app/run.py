@@ -10,6 +10,7 @@ from flask import render_template, request, jsonify
 from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
+import pickle
 
 
 app = Flask(__name__)
@@ -30,7 +31,7 @@ engine = create_engine('sqlite:///DisasterResponse.db')
 df = pd.read_sql_table('Messages', engine)
 
 # load model
-model = joblib.load("models/classifier.pkl")
+model = pickle.load(open("models/classifier.pkl",'rb'))
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -42,6 +43,11 @@ def index():
     # TODO: Below is an example - modify to extract data for your own visuals
     genre_counts = df.groupby('genre').count()['message']
     genre_names = list(genre_counts.index)
+
+    kk = df.iloc[:,4:].apply(pd.value_counts).iloc[1]
+    kk = kk.sort_values(ascending=False)[:10]
+    top_10_labels = list(kk.index)
+    top_10_counts = list(kk.values)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals
@@ -61,6 +67,25 @@ def index():
                 },
                 'xaxis': {
                     'title': "Genre"
+                }
+            }
+        },
+
+        {
+            'data': [
+                Bar(
+                    x=top_10_labels,
+                    y=top_10_counts
+                )
+            ],
+
+            'layout': {
+                'title': 'Top 10 labels with their counts',
+                'yaxis': {
+                    'title': "Count"
+                },
+                'xaxis': {
+                    'title': "Labels"
                 }
             }
         }
