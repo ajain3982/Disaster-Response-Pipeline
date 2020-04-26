@@ -43,6 +43,8 @@ def clean_data(df):
 
 
 def save_data(df, database_filename):
+
+    ## saves the cleaned data
 	engine = create_engine('sqlite:///' + database_filename)
 	df.to_sql('Messages', engine, index=False)
 

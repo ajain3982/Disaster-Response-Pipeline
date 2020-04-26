@@ -4,6 +4,7 @@ import pandas as pd
 
 from nltk.stem import WordNetLemmatizer
 from nltk.tokenize import word_tokenize
+from nltk.corpus import stopwords
 
 from flask import Flask
 from flask import render_template, request, jsonify
@@ -11,7 +12,7 @@ from plotly.graph_objs import Bar
 from sklearn.externals import joblib
 from sqlalchemy import create_engine
 import pickle
-
+stopwords = set(stopwords.words('english'))
 
 app = Flask(__name__)
 
@@ -21,17 +22,18 @@ def tokenize(text):
 
     clean_tokens = []
     for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
+        if tok not in stopwords:
+            clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+            clean_tokens.append(clean_tok)
 
     return clean_tokens
 
 # load data
-engine = create_engine('sqlite:///DisasterResponse.db')
+engine = create_engine('sqlite:///../data/DisasterResponse.db')
 df = pd.read_sql_table('Messages', engine)
 
 # load model
-model = pickle.load(open("models/classifier.pkl",'rb'))
+model = pickle.load(open("../models/classifier.pkl",'rb'))
 
 
 # index webpage displays cool visuals and receives user input text for model
@@ -47,7 +49,8 @@ def index():
     kk = df.iloc[:,4:].apply(pd.value_counts).iloc[1]
     kk = kk.sort_values(ascending=False)[:10]
     top_10_labels = list(kk.index)
-    top_10_counts = list(kk.values)
+    top_10_counts = list(kk.values.astype(int))
+    print(top_10_labels,top_10_counts)
     
     # create visuals
     # TODO: Below is an example - modify to create your own visuals

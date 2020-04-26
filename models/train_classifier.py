@@ -17,6 +17,8 @@ stopwords = set(stopwords.words('english'))
 
 
 def load_data(database_filepath):
+
+    ## using sqlite engine to load the data
     engine = create_engine('sqlite:///' + database_filepath)
     df = pd.read_sql_table('Messages',engine)
     X = df['message']
@@ -25,31 +27,45 @@ def load_data(database_filepath):
     return X,Y,Y.columns.tolist()
 
 def tokenize(text):
+    '''
+    tokeniser method which takes a text, removes stop words and lemmatizes
+    '''
     tokens = word_tokenize(text)
     lemmatizer = WordNetLemmatizer()
 
     clean_tokens = []
     for tok in tokens:
-        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
-        clean_tokens.append(clean_tok)
+        if tok not in stopwords:
+            clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+            clean_tokens.append(clean_tok)
 
     return clean_tokens
     
 
 
 def build_model():
+    '''
+    function to built a pipeline of tfidf and model
+    '''
     pipeline = Pipeline([('tfidf',TfidfVectorizer(tokenizer=tokenize)),
                      ('clf',MultiOutputClassifier(RandomForestClassifier()))])
 
-    parameters = {'clf__estimator__n_estimators':[20],'clf__estimator__max_depth':[3], 
+    ## added only 1 parameter, because training takes too much time. You can change it and
+    ## code will still run fine.
+    parameters = {'clf__estimator__n_estimators':[100],'clf__estimator__max_depth':[3], 
               'clf__estimator__min_samples_split':[2]}
 
+    ## Grid search using sklearn
     cv = GridSearchCV(pipeline,param_grid=parameters,scoring='f1_weighted',verbose=1,n_jobs=-1)
 
     return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+
+    '''
+    evaluates precision recall for every class in y_test
+    '''
     predictions = model.predict(X_test)
     for col_no in range(predictions.shape[1]):
         break_str = '-'*20 + "Precision Recall Report for " + category_names[col_no] + "-"*20
@@ -59,6 +75,9 @@ def evaluate_model(model, X_test, Y_test, category_names):
 
 
 def save_model(model, model_filepath):
+    '''
+    used pickle instead of joblib for better reproducability
+    '''
     pickle.dump(model, open(model_filepath,'wb'))
 
 
