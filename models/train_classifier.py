@@ -9,6 +9,8 @@ from sklearn.multioutput import MultiOutputClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split,GridSearchCV
 from sklearn.metrics import classification_report
+from nltk.stem import WordNetLemmatizer
+import pickle
 
 ## loading english stopwords
 stopwords = set(stopwords.words('english'))
@@ -23,26 +25,41 @@ def load_data(database_filepath):
     return X,Y,Y.columns.tolist()
 
 def tokenize(text):
-    text = str(text).lower()
     tokens = word_tokenize(text)
-    final_tok_list = []
+    lemmatizer = WordNetLemmatizer()
+
+    clean_tokens = []
     for tok in tokens:
-        if tok not in stopwords:
-            final_tok_list.append(tok)
-    return final_tok_list
+        clean_tok = lemmatizer.lemmatize(tok).lower().strip()
+        clean_tokens.append(clean_tok)
+
+    return clean_tokens
     
 
 
 def build_model():
-    pass
+    pipeline = Pipeline([('tfidf',TfidfVectorizer(tokenizer=tokenize)),
+                     ('clf',MultiOutputClassifier(RandomForestClassifier()))])
+
+    parameters = {'clf__estimator__n_estimators':[20],'clf__estimator__max_depth':[3], 
+              'clf__estimator__min_samples_split':[2]}
+
+    cv = GridSearchCV(pipeline,param_grid=parameters,scoring='f1_weighted',verbose=1,n_jobs=-1)
+
+    return cv
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
-    pass
+    predictions = model.predict(X_test)
+    for col_no in range(predictions.shape[1]):
+        break_str = '-'*20 + "Precision Recall Report for " + category_names[col_no] + "-"*20
+        print(break_str)
+        print(str(classification_report(Y_test.values[:,col_no],predictions[:,col_no])))
+
 
 
 def save_model(model, model_filepath):
-    pass
+    pickle.dump(model, open(model_filepath,'wb'))
 
 
 def main():
@@ -57,6 +74,9 @@ def main():
         
         print('Training model...')
         model.fit(X_train, Y_train)
+
+        ## best model
+        model = model.best_estimator_
         
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, category_names)
